@@ -223,10 +223,25 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
             switch (data.type) {
               case "join":
                 addOrUpdateParticipant(data.id, data.name)
+
+                // Build peer list using live refs (avoids stale closure of `participants`/`self`)
+                const peersForList = [...(participants || []), ...(self ? [self] : [])]
+
                 conn.send({
                   type: "peer-list",
-                  peers: [...participants, self].filter(Boolean),
+                  peers: peersForList,
                 })
+
+                // Proactively place a media call from HOST to the new guest
+                // This ensures media connectivity even if the guest cannot publish a local stream.
+                if (localStream) {
+                  const c = peer.call(data.id, localStream)
+                  callsRef.current.set(data.id, c)
+                  c.on("stream", (remoteStream) => addOrUpdateParticipant(data.id, data.name, remoteStream))
+                  c.on("close", () => removeParticipant(data.id))
+                  c.on("error", () => removeParticipant(data.id))
+                }
+
                 broadcastHost({ type: "peer-joined", peer: { id: data.id, name: data.name } })
                 break
               case "chat":
@@ -280,7 +295,7 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
                 case "peer-list": {
                   const list: { id: string; name?: string }[] = data.peers || []
                   for (const p of list) {
-                    if (p.id !== myId) {
+                    if (p.id !== guest.id) {
                       addOrUpdateParticipant(p.id, p.name)
                       if (localStream) {
                         const c = guest.call(p.id, localStream)
