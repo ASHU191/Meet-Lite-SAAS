@@ -1,30 +1,39 @@
-# Frontend-only meeting app
+# MeetLite —  Meet Clone
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+A **Google Meet–style video conferencing app** built entirely on the **frontend** using  
+**Next.js 15, TypeScript, TailwindCSS, and PeerJS (WebRTC)**.  
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ashu191s-projects/v0-frontend-only-meeting-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/JNM6hhxTTRM)
+⚡ Unlimited meetings.  
+⚡ Screen share + video + audio.  
+⚡ Up to **20 participants per meeting**.  
+⚡ No backend. No database. 100% frontend-based.  
 
-## Overview
+---
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+## 🚀 Demo
+👉 https://quick-meet-saas.vercel.app/
 
-## Deployment
+---
 
-Your project is live at:
+## ✨ Features
+- **Frontend-only architecture** → No backend, no database.  
+- **Unlimited call duration**.  
+- **Meeting Rooms** → Create a new meeting or join via shareable URL (`/meeting/<id>`).  
+- **Participants** → Min 1, Max 20 participants (P2P mesh via PeerJS).  
+- **Video & Audio Calls** → Toggle camera/mic anytime.  
+- **Screen Sharing** → Share your entire screen, a window, or a tab.  
+- **Chat Sidebar** → Real-time text chat with PeerJS DataChannels.  
+- **Responsive Grid Layout** → Auto-adjusts participant tiles.  
+- **Active Speaker Highlight** → Glow border around active speaker.  
+- **LocalStorage Support** → Save username and preferences locally.  
+- **Dark/Light Mode** → Modern TailwindCSS design with theme toggle.  
+- **SaaS-Ready Frontend** → Landing page, meeting pages, and clean UI/UX.  
 
-**[https://vercel.com/ashu191s-projects/v0-frontend-only-meeting-app](https://vercel.com/ashu191s-projects/v0-frontend-only-meeting-app)**
+---
 
-## Build your app
+## 🛠 Tech Stack
+- [Next.js 15 (App Router)](https://nextjs.org/)  
+- [TypeScript](https://www.typescriptlang.org/)  
+- [TailwindCSS](https://tailwindcss.com/)  
+- [PeerJS](https://peerjs.com/) (WebRTC wrapper)  
 
-Continue building your app on:
-
-**[https://v0.app/chat/projects/JNM6hhxTTRM](https://v0.app/chat/projects/JNM6hhxTTRM)**
-
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
