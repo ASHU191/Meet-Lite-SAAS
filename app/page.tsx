@@ -130,8 +130,8 @@ export default function HomePage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-muted-foreground flex items-center justify-between">
-          <span>Made with Next.js + PeerJS</span>
-          <span>Frontend-only demo</span>
+          <span>Made with ❤️ by Arsalan</span>
+          <span>© 2025 Meet Lite. All rights reserved.</span>
         </div>
       </footer>
     </main>
