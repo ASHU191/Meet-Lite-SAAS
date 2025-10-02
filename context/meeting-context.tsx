@@ -58,6 +58,10 @@ type MeetingContextValue = {
 
   // Error
   roomFull: boolean
+
+  presenterId: string | null
+  compactView: boolean
+  toggleCompactView: () => void
 }
 
 const MeetingContext = createContext<MeetingContextValue | null>(null)
@@ -80,6 +84,8 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
   const [isScreenSharing, setIsScreenSharing] = useState(false)
   const [joinRequested, setJoinRequested] = useState(true)
   const [roomFull, setRoomFull] = useState(false)
+  const [presenterId, setPresenterId] = useState<string | null>(null)
+  const [compactView, setCompactView] = useState<boolean>(false)
 
   const peerRef = useRef<Peer | null>(null)
   const hostConnRef = useRef<DataConnection | null>(null) // for guests
@@ -87,22 +93,20 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
   const callsRef = useRef<Map<string, MediaConnection>>(new Map())
   const volumesRef = useRef<Map<string, { getVolume: () => number; dispose: () => void }>>(new Map())
   const originalCameraTrackRef = useRef<MediaStreamTrack | null>(null)
+  const latestSelfRef = useRef<typeof self | null>(null)
 
   const MAX_PARTICIPANTS = 20
 
   const broadcastHost = useCallback((payload: any) => {
-    // Host: broadcast to all clients
     for (const [, conn] of dataConnsRef.current) {
       if (conn.open) conn.send(payload)
     }
   }, [])
 
-  // Initialize peer and connect
   useEffect(() => {
     let disposed = false
 
     async function init() {
-      // Wait until user has provided a name
       const name = localStorage.getItem("displayName") || ""
       if (!name) {
         setJoinRequested(true)
@@ -110,7 +114,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
       }
       setJoinRequested(false)
 
-      // Prepare local media
       let localStream: MediaStream | undefined
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
@@ -118,7 +121,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
           audio: true,
         })
       } catch (err) {
-        // If camera blocked, try audio-only
         try {
           localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
           setCamEnabled(false)
@@ -127,7 +129,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
         }
       }
 
-      // Attempt to become host with id=meetingId
       const peer = new Peer(meetingId)
       peerRef.current = peer
 
@@ -137,7 +138,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
         setSelf({ id: peerSelfId, name, stream: localStream })
         setConnected(true)
 
-        // Answer incoming media calls
         peer.on("call", (call) => {
           call.answer(localStream)
           callsRef.current.set(call.peer, call)
@@ -152,23 +152,20 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
           })
         })
 
-        // Active speaker tracking loop
         const interval = setInterval(() => {
           let topId: string | null = null
           let topVol = 0
           for (const [pid, meter] of volumesRef.current) {
             const v = meter.getVolume()
-            if (v > topVol) {
+            if (v > 20) {
               topVol = v
               topId = pid
             }
           }
-          setActiveSpeakerId(topVol > 20 ? topId : null) // threshold for speaking
+          setActiveSpeakerId(topVol > 20 ? topId : null)
         }, 250)
-        // cleanup tied to peer destroy
         ;(peer as any).__volTimer = interval
 
-        // Attach volume meters
         if (localStream) attachVolumeMeter(peerSelfId, localStream)
       }
 
@@ -206,11 +203,9 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
       peer.on("open", (id) => {
         if (disposed) return
         opened = true
-        // We are host
         setIsHost(true)
         setupCommon(id)
 
-        // Host data channel management
         peer.on("connection", (conn) => {
           if (dataConnsRef.current.size + 1 >= MAX_PARTICIPANTS) {
             conn.on("open", () => {
@@ -227,18 +222,14 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
             if (!data) return
             switch (data.type) {
               case "join":
-                // data: { id, name }
                 addOrUpdateParticipant(data.id, data.name)
-                // Send current peer list back to new guest
                 conn.send({
                   type: "peer-list",
-                  peers: [...participantsRef(), selfRef()].filter(Boolean),
+                  peers: [...participants, self].filter(Boolean),
                 })
-                // Broadcast to others
                 broadcastHost({ type: "peer-joined", peer: { id: data.id, name: data.name } })
                 break
               case "chat":
-                // Relay chat to everyone including self
                 const msg: ChatMessage = {
                   id: crypto.randomUUID(),
                   senderId: data.senderId,
@@ -249,6 +240,11 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
                 setMessages((prev) => [...prev, msg])
                 broadcastHost({ type: "chat", message: msg })
                 break
+              case "presenter": {
+                setPresenterId(data.id ?? null)
+                broadcastHost({ type: "presenter", id: data.id ?? null })
+                break
+              }
               default:
                 break
             }
@@ -264,19 +260,15 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
 
       peer.on("error", (err: any) => {
         if (disposed) return
-        // If host id taken, become guest
         if ((err?.type || err?.name) === "unavailable-id") {
-          // Create guest peer with random id
           const guest = new Peer()
           peerRef.current = guest
           guest.on("open", (myId) => {
             setIsHost(false)
             setupCommon(myId)
-            // connect to host
             const conn = guest.connect(meetingId)
             hostConnRef.current = conn
             conn.on("open", () => {
-              // send join
               conn.send({ type: "join", id: myId, name })
             })
             conn.on("data", (data: any) => {
@@ -286,18 +278,14 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
                   setRoomFull(true)
                   break
                 case "peer-list": {
-                  // Connect media to all peers in list
                   const list: { id: string; name?: string }[] = data.peers || []
-                  // Add them as participants (names if provided)
                   for (const p of list) {
                     if (p.id !== myId) {
                       addOrUpdateParticipant(p.id, p.name)
                       if (localStream) {
                         const c = guest.call(p.id, localStream)
                         callsRef.current.set(p.id, c)
-                        c.on("stream", (remoteStream) => {
-                          addOrUpdateParticipant(p.id, p.name, remoteStream)
-                        })
+                        c.on("stream", (remoteStream) => addOrUpdateParticipant(p.id, p.name, remoteStream))
                         c.on("close", () => removeParticipant(p.id))
                         c.on("error", () => removeParticipant(p.id))
                       }
@@ -308,7 +296,7 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
                 case "peer-joined": {
                   const p = data.peer
                   if (!p) break
-                  if (p.id === selfRef()?.id) break
+                  if (p.id === selfRefCurrent()?.id) break
                   addOrUpdateParticipant(p.id, p.name)
                   if (localStream) {
                     const c = guest.call(p.id, localStream)
@@ -327,6 +315,10 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
                   setMessages((prev) => [...prev, msg])
                   break
                 }
+                case "presenter": {
+                  setPresenterId(data.id ?? null)
+                  break
+                }
                 default:
                   break
               }
@@ -336,7 +328,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
             })
           })
 
-          // Answer calls from host/peers
           guest.on("call", (call) => {
             call.answer(localStream)
             callsRef.current.set(call.peer, call)
@@ -363,15 +354,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
       peer.on("disconnected", () => setConnected(false))
       peer.on("close", () => setConnected(false))
 
-      function participantsRef() {
-        // Extract current participants with name
-        return participantsStateRef.current
-      }
-      function selfRef() {
-        return selfStateRef.current ? { id: selfStateRef.current.id, name: selfStateRef.current.name } : null
-      }
-
-      // track state in refs for host reply building
       const participantsStateRef = { current: [] as { id: string; name?: string }[] }
       const selfStateRef = { current: { id: "", name: "" } as { id: string; name: string } | null }
 
@@ -382,7 +364,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
         selfStateRef.current = me ? { id: me.id, name: me.name } : null
       })
 
-      // Save original camera track for screen share toggle
       if (localStream) {
         originalCameraTrackRef.current = localStream.getVideoTracks()[0] || null
       }
@@ -397,13 +378,10 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
 
     return () => {
       disposed = true
-      if (peerRef.current) {
-        try {
-          const timer = (peerRef.current as any).__volTimer as any
-          if (timer) clearInterval(timer)
-        } catch {}
-      }
-      // Close all connections
+      try {
+        const timer = (peerRef.current as any).__volTimer as any
+        if (timer) clearInterval(timer)
+      } catch {}
       hostConnRef.current?.close()
       for (const [, conn] of dataConnsRef.current) conn.close()
       dataConnsRef.current.clear()
@@ -417,7 +395,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meetingId, joinRequested])
 
-  // Subscriptions helpers to capture state in closures for host reply logic
   const subs = useRef<Set<(ps: Participant[]) => void>>(new Set())
   const subsSelf = useRef<Set<(s: { id: string; name: string; stream?: MediaStream } | null) => void>>(new Set())
   useEffect(() => {
@@ -449,12 +426,10 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
       setMessages((prev) => [...prev, msg])
 
       if (isHost) {
-        // Host: broadcast
         for (const [, conn] of dataConnsRef.current) {
           if (conn.open) conn.send({ type: "chat", message: msg })
         }
       } else {
-        // Guest: send to host
         const conn = hostConnRef.current
         if (conn?.open) conn.send({ type: "chat", senderId: me.id, senderName: me.name, text })
       }
@@ -462,7 +437,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
     [isHost, self],
   )
 
-  // Controls
   const toggleMic = useCallback(() => {
     const stream = self?.stream
     if (!stream) return
@@ -492,7 +466,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
           sender.replaceTrack(newTrack).catch(() => {})
         }
       }
-      // Update local stream
       if (self?.stream) {
         const stream = self.stream
         const old = stream.getVideoTracks()[0]
@@ -511,41 +484,69 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
       if (!track) return
       replaceVideoTrackOnAll(track)
       setIsScreenSharing(true)
-      // When user stops sharing from browser UI
+      const me = selfRefCurrent()
+      if (me) {
+        if (isHost) {
+          setPresenterId(me.id)
+          broadcastHost({ type: "presenter", id: me.id })
+        } else {
+          const conn = hostConnRef.current
+          if (conn?.open) conn.send({ type: "presenter", id: me.id })
+        }
+      }
       track.onended = () => {
         if (originalCameraTrackRef.current) {
           replaceVideoTrackOnAll(originalCameraTrackRef.current)
         }
         setIsScreenSharing(false)
+        if (isHost) {
+          setPresenterId(null)
+          broadcastHost({ type: "presenter", id: null })
+        } else {
+          const conn = hostConnRef.current
+          if (conn?.open) conn.send({ type: "presenter", id: null })
+        }
       }
     } catch {}
-  }, [replaceVideoTrackOnAll])
+  }, [broadcastHost, isHost, replaceVideoTrackOnAll])
 
   const stopScreenShare = useCallback(() => {
     if (originalCameraTrackRef.current) {
       replaceVideoTrackOnAll(originalCameraTrackRef.current)
     }
     setIsScreenSharing(false)
-  }, [replaceVideoTrackOnAll])
+    if (isHost) {
+      setPresenterId(null)
+      broadcastHost({ type: "presenter", id: null })
+    } else {
+      const conn = hostConnRef.current
+      if (conn?.open) conn.send({ type: "presenter", id: null })
+    }
+  }, [broadcastHost, isHost, replaceVideoTrackOnAll])
 
   const leaveMeeting = useCallback(() => {
-    // Simple frontend-only leave: close peer and reload to landing
     try {
       peerRef.current?.destroy()
     } catch {}
     window.location.href = "/"
   }, [])
 
-  // Join modal completion
   const completeJoin = useCallback((name: string | null) => {
     if (!name) {
-      // Cancel: navigate out
       window.location.href = "/"
       return
     }
     localStorage.setItem("displayName", name)
     setJoinRequested(false)
   }, [])
+
+  const toggleCompactView = useCallback(() => setCompactView((v) => !v), [])
+
+  const selfRefCurrent = useCallback(() => latestSelfRef.current || null, [])
+
+  useEffect(() => {
+    latestSelfRef.current = self
+  }, [self])
 
   const value = useMemo<MeetingContextValue>(() => {
     return {
@@ -557,7 +558,6 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
       activeSpeakerId,
       messages,
       sendMessage,
-
       micEnabled,
       camEnabled,
       isScreenSharing,
@@ -566,11 +566,12 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
       startScreenShare,
       stopScreenShare,
       leaveMeeting,
-
       joinRequested,
       completeJoin,
-
       roomFull,
+      presenterId,
+      compactView,
+      toggleCompactView,
     }
   }, [
     meetingId,
@@ -592,6 +593,9 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
     joinRequested,
     completeJoin,
     roomFull,
+    presenterId,
+    compactView,
+    toggleCompactView,
   ])
 
   return <MeetingContext.Provider value={value}>{children}</MeetingContext.Provider>

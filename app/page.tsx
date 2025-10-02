@@ -1,4 +1,3 @@
-// 'use client' for interactive landing
 "use client"
 
 import { useRouter } from "next/navigation"
@@ -18,11 +17,14 @@ export default function HomePage() {
   const router = useRouter()
   const [meetingId, setMeetingId] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [createdId, setCreatedId] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const onCreate = useCallback(() => {
     const id = generateMeetingId()
-    router.push(`/meeting/${id}`)
-  }, [router])
+    setCreatedId(id)
+    setCopied(false)
+  }, [])
 
   const canJoin = useMemo(() => meetingId.trim().length >= 4, [meetingId])
 
@@ -33,6 +35,12 @@ export default function HomePage() {
     }
     router.push(`/meeting/${meetingId.trim()}`)
   }, [canJoin, meetingId, router])
+
+  const createdLink = useMemo(() => {
+    if (!createdId) return ""
+    if (typeof window === "undefined") return `/meeting/${createdId}`
+    return `${window.location.origin}/meeting/${createdId}`
+  }, [createdId])
 
   return (
     <main className="min-h-[100svh] flex flex-col">
@@ -73,6 +81,33 @@ export default function HomePage() {
               </div>
             </div>
             {error && <p className="text-destructive-foreground/90 text-sm">{error}</p>}
+
+            {createdId && (
+              <Card className="p-4 border-border animate-in fade-in-0 slide-in-from-top-2 duration-300">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Share this link with a friend</p>
+                    <div className="flex items-center gap-2">
+                      <Input readOnly value={createdLink} className="font-mono text-xs" />
+                      <Button
+                        variant="secondary"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(createdLink)
+                            setCopied(true)
+                            setTimeout(() => setCopied(false), 2000)
+                          } catch {}
+                        }}
+                      >
+                        {copied ? "Copied" : "Copy"}
+                      </Button>
+                      <Button onClick={() => router.push(`/meeting/${createdId}`)}>Join now</Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Anyone with the link can join. No login required.</p>
+                </div>
+              </Card>
+            )}
           </div>
 
           <Card className={cn("p-4 md:p-6 bg-card/60 border-border")}>
@@ -95,8 +130,8 @@ export default function HomePage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-muted-foreground flex items-center justify-between">
-          <span>Made with ❤️ by Arsalan Aftab </span>
-          <span>© 2025 Meet Lite. All rights reserved</span>
+          <span>Made with Next.js + PeerJS</span>
+          <span>Frontend-only demo</span>
         </div>
       </footer>
     </main>

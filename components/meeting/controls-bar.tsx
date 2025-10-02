@@ -1,5 +1,3 @@
-// 'use client'
-
 "use client"
 
 import { useCallback } from "react"
@@ -16,6 +14,8 @@ export default function ControlsBar({ onToggleChat, chatOpen }: { onToggleChat: 
     stopScreenShare,
     isScreenSharing,
     leaveMeeting,
+    compactView,
+    toggleCompactView,
   } = useMeeting()
 
   const onShare = useCallback(() => {
@@ -27,6 +27,9 @@ export default function ControlsBar({ onToggleChat, chatOpen }: { onToggleChat: 
     <div className="px-3 md:px-4 py-3 flex items-center justify-between gap-3">
       <div className="text-sm text-muted-foreground">Meeting controls</div>
       <div className="flex items-center gap-2">
+        <Button variant={compactView ? "default" : "secondary"} onClick={toggleCompactView}>
+          {compactView ? "Comfortable" : "Compact"}
+        </Button>
         <Button variant={micEnabled ? "secondary" : "destructive"} onClick={toggleMic}>
           {micEnabled ? "Mute" : "Unmute"}
         </Button>
