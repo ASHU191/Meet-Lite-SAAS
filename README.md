@@ -1,4 +1,4 @@
-# MeetLite — Frontend-Only Google Meet Clone
+# MeetLite —  Google Meet Clone
 
 A **Google Meet–style video conferencing app** built entirely on the **frontend** using  
 **Next.js 15, TypeScript, TailwindCSS, and PeerJS (WebRTC)**.  
