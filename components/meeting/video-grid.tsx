@@ -56,8 +56,8 @@ export default function VideoGrid() {
 
   if (presenter) {
     return (
-      <div className="p-3 md:p-4 h-full flex flex-col gap-3 md:gap-4">
-        <div className="flex-1 rounded-lg overflow-hidden bg-muted border border-border">
+      <div className="p-3 md:p-4 h-full min-h-0 flex flex-col gap-3 md:gap-4">
+        <div className="flex-1 min-h-0 rounded-lg overflow-hidden bg-muted border border-border">
           <VideoTile
             id={presenter.id}
             name={presenter.name}
@@ -128,7 +128,7 @@ function VideoTile({
   return (
     <div
       className={cn(
-        "relative h-full w-full bg-muted border transition-shadow",
+        "relative h-full min-h-0 w-full bg-muted border transition-shadow",
         "rounded-lg overflow-hidden",
         isActive ? "ring-2 ring-primary shadow-[0_0_0_3px_var(--color-primary)]" : "border-border",
         thumb && "aspect-video h-auto w-[140px] md:w-[160px]",

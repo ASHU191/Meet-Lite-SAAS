@@ -1,5 +1,3 @@
-// 'use client'
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -41,8 +39,8 @@ function RoomInner() {
         <div className="text-sm text-muted-foreground">{connected ? "Connected" : "Connecting..."}</div>
       </header>
 
-      <section className="grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-0">
-        <div className="relative">
+      <section className="grid min-h-0 grid-cols-1 lg:grid-cols-[1fr,360px] gap-0">
+        <div className="relative min-h-0">
           <VideoGrid />
           {/* Active speaker glow hint */}
           <div className="pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_top,transparent,black_80%)]" />
