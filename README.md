@@ -11,7 +11,7 @@ A **Google Meet–style video conferencing app** built entirely on the **fronten
 ---
 
 ## 🚀 Demo
-👉 [Live Demo on Vercel](#) (Add your link once deployed)
+👉 https://quick-meet-saas.vercel.app/
 
 ---
 
