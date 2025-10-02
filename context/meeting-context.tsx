@@ -139,7 +139,7 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
         setConnected(true)
 
         peer.on("call", (call) => {
-          call.answer(localStream)
+          call.answer(localStream || undefined)
           callsRef.current.set(call.peer, call)
           call.on("stream", (remoteStream) => {
             addOrUpdateParticipant(call.peer, undefined, remoteStream)
@@ -232,10 +232,10 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
                   peers: peersForList,
                 })
 
-                // Proactively place a media call from HOST to the new guest
-                // This ensures media connectivity even if the guest cannot publish a local stream.
-                if (localStream) {
-                  const c = peer.call(data.id, localStream)
+                // If we don't have a local stream, use an empty MediaStream to open the RTCPeerConnection.
+                if (!callsRef.current.has(data.id)) {
+                  const streamToSend = localStream ?? new MediaStream()
+                  const c = peer.call(data.id, streamToSend)
                   callsRef.current.set(data.id, c)
                   c.on("stream", (remoteStream) => addOrUpdateParticipant(data.id, data.name, remoteStream))
                   c.on("close", () => removeParticipant(data.id))
@@ -297,8 +297,8 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
                   for (const p of list) {
                     if (p.id !== guest.id) {
                       addOrUpdateParticipant(p.id, p.name)
-                      if (localStream) {
-                        const c = guest.call(p.id, localStream)
+                      if (!callsRef.current.has(p.id)) {
+                        const c = guest.call(p.id, localStream ?? new MediaStream())
                         callsRef.current.set(p.id, c)
                         c.on("stream", (remoteStream) => addOrUpdateParticipant(p.id, p.name, remoteStream))
                         c.on("close", () => removeParticipant(p.id))
@@ -313,8 +313,8 @@ export function MeetingProvider({ meetingId, children }: { meetingId: string; ch
                   if (!p) break
                   if (p.id === selfRefCurrent()?.id) break
                   addOrUpdateParticipant(p.id, p.name)
-                  if (localStream) {
-                    const c = guest.call(p.id, localStream)
+                  if (!callsRef.current.has(p.id)) {
+                    const c = guest.call(p.id, localStream ?? new MediaStream())
                     callsRef.current.set(p.id, c)
                     c.on("stream", (remoteStream) => addOrUpdateParticipant(p.id, p.name, remoteStream))
                     c.on("close", () => removeParticipant(p.id))
