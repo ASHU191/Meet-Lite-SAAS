@@ -57,7 +57,7 @@ export default function VideoGrid() {
   if (presenter) {
     return (
       <div className="p-3 md:p-4 h-full min-h-0 flex flex-col gap-3 md:gap-4">
-        <div className="flex-1 min-h-0 rounded-lg overflow-hidden bg-muted border border-border">
+        <div className="flex-1 min-h-0 h-full rounded-lg overflow-hidden bg-muted border border-border">
           <VideoTile
             id={presenter.id}
             name={presenter.name}

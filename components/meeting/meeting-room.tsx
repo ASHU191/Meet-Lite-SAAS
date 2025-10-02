@@ -27,7 +27,7 @@ function RoomInner() {
   }, [roomFull])
 
   return (
-    <main className="min-h-[100svh] grid grid-rows-[auto,1fr,auto]">
+    <main className="h-[100svh] grid grid-rows-[auto,1fr,auto]">
       <header className="border-b border-border px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="size-6 rounded-md bg-primary" aria-hidden />
@@ -39,8 +39,8 @@ function RoomInner() {
         <div className="text-sm text-muted-foreground">{connected ? "Connected" : "Connecting..."}</div>
       </header>
 
-      <section className="grid min-h-0 grid-cols-1 lg:grid-cols-[1fr,360px] gap-0">
-        <div className="relative min-h-0">
+      <section className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[1fr,360px] gap-0">
+        <div className="relative h-full min-h-0">
           <VideoGrid />
           {/* Active speaker glow hint */}
           <div className="pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_top,transparent,black_80%)]" />
