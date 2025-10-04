@@ -15,7 +15,7 @@ A **Google Meet–style video conferencing app** built entirely on the **fronten
 
 ---
 
-## ✨ Features
+## ✨ Features   
 - **Frontend-only architecture** → No backend, no database.  
 - **Unlimited call duration**.  
 - **Meeting Rooms** → Create a new meeting or join via shareable URL (`/meeting/<id>`).  
