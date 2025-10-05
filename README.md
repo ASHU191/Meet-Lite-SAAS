@@ -9,7 +9,7 @@ A **Google Meet–style video conferencing app** built entirely on the **fronten
 ⚡ No backend. No database. 100% frontend-based.  
 
 ---
-
+   
 ## 🚀 Demo
 👉 https://quick-meet-saas.vercel.app/
 
