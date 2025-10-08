@@ -22,7 +22,7 @@ A **Google Meet–style video conferencing app** built entirely on the **fronten
 - **Participants** → Min 1, Max 20 participants (P2P mesh via PeerJS).  
 - **Video & Audio Calls** → Toggle camera/mic anytime.  
 - **Screen Sharing** → Share your entire screen, a window, or a tab.  
-- **Chat Sidebar** → Real-time text chat with PeerJS DataChannels.  
+- **Chat Sidebar** → Real-time text chat with PeerJS DataChannels.     
 - **Responsive Grid Layout** → Auto-adjusts participant tiles.  
 - **Active Speaker Highlight** → Glow border around active speaker.  
 - **LocalStorage Support** → Save username and preferences locally.  
