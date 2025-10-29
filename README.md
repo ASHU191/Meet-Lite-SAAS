@@ -12,13 +12,13 @@ A **Google Meet–style video conferencing app** built entirely on the **fronten
    
 ## 🚀 Demo
 👉 https://quick-meet-saas.vercel.app/
-
+  
 ---
 
 ## ✨ Features   
 - **Frontend-only architecture** → No backend, no database.  
 - **Unlimited call duration**.  
-- **Meeting Rooms** → Create a new meeting or join via shareable URL (`/meeting/<id>`).  
+- **Meeting Rooms** → Create a new meeting or join via shareable URL (`/meeting/<id>`).     
 - **Participants** → Min 1, Max 20 participants (P2P mesh via PeerJS).  
 - **Video & Audio Calls** → Toggle camera/mic anytime.  
 - **Screen Sharing** → Share your entire screen, a window, or a tab.  
